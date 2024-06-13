@@ -1,0 +1,145 @@
+Answer for the corresponding question using mongobd queries:
+
+1.Find all the topics and tasks which are thought in the month of October
+
+Answer:
+
+  db.topics.aggregate([
+   
+    {
+        $match: {
+            $and: [
+                { topic_date: { $gte: new Date("2020-10-01"), $lt: new Date("2020-11-01") } },
+                {
+                    $or: [
+                        { "taskinfo.due_date": { $gte: new Date("2020-10-01"), $lt: new Date("2020-11-01") } },
+                        { "taskinfo.due_date": { $exists: false } }
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        $project: {
+            _id: 0,
+            topicid: 1,
+            topic: 1,
+            topic_date: 1,
+            tasks: "$taskinfo.task",
+            due_dates: "$taskinfo.due_date"
+        }
+    }
+])
+
+
+2.Find all the company drives which appeared between 15 oct-2023 and 31-oct-2023.
+
+Answer:
+
+    db.companydrives.find({
+    $or: [
+        { drive_date: { $gte: new Date("15-oct-2023") } },
+        { drive_date: { $lte: new Date("31-oct-2023") } }
+    ]
+})
+
+ 
+3.Find all the company drives and students who are appeared for the placement.
+
+Answer:
+
+   db.companydrives.aggregate([
+    {
+        $lookup: {
+            from: "users",
+            localField: "userid",
+            foreignField: "userid",
+            as: "userinfo"
+        }
+    },
+    {
+        $project: {
+            _id: 0,
+            company: 1,
+            drive_date: 0,
+            students: "$userinfo"
+        }
+    }
+     ])
+
+4.Find the number of problems solved by the user in codekata
+
+Answer:
+
+    db.codekata.aggregate([
+    {
+        $lookup: {
+            from: "users",
+            localField: "userid",
+            foreignField: "userid",
+            as: "userinfo"
+        }
+    },
+
+     {
+        $group: {
+             _id: {
+                userid: "$userid",
+                username: "$userinfo.name"
+            },
+            total_problems_solved: { $sum: "$problems" }
+        }
+           }
+     
+     {
+        $project: {
+            _id: 0,
+            userid: "$_id.userid",
+            username: "$_id.username",
+            total_problems_solved: 1
+        }
+    }
+])
+
+
+
+
+
+    5. Find all the mentors with who has the mentee's count more than 15 :
+
+
+Answer : 
+
+db.mentors.find([	
+  { 
+    mentee_count: { $gte: 15 } 
+    },
+
+  { _id: 0, mentorname: 1, mentee_count: 1 }­­­
+
+])
+
+
+
+6.Find the number of users who are absent and task is not submitted  between 15 oct-2023 and 31-oct-2023.
+
+Answer:
+
+db.attendance.aggregate([
+    {$match:
+    {date: {$gte: ISODate("2023-10-15"), $lte: ISODate("2023-10-31")}, status: false}},
+    {$lookup:
+
+ {
+    from: "tasks",
+     localField: "user_id", 
+     foreignField: "user_id",
+      as: "taskInfo"}
+  },
+    {$match: {"taskInfo": { $elemMatch: {task_date: {$gte: ISODate("2023-10-15"), $lte: ISODate("2023-10-31")}, 
+    Submission_status: false}}}
+},
+
+    {$group: {_id: null, count: { $sum: 1 }}}    
+  ])
+ 
